@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f9edf2"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="HeyMoni">
+<title>HeyMoni – Cheltuielile mele</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#42313b;background:#fff8fa}*{box-sizing:border-box}body{margin:0}main{max-width:640px;margin:auto;padding:24px 17px 65px}h1{margin:4px 0 3px;color:#a94f78;font-size:31px;letter-spacing:-1px}.sub{color:#826c78;margin:0 0 22px}.card{background:white;border:1px solid #f0dfe6;border-radius:20px;padding:18px;margin:14px 0;box-shadow:0 5px 18px #8c53630d}.small{font-size:13px;color:#826c78}.total{font-size:36px;font-weight:750;color:#9c456e;margin:6px 0}label{display:block;font-size:14px;font-weight:650;margin:14px 0 6px}input,select,button{font:inherit;width:100%;border-radius:12px;padding:13px;border:1px solid #dbc8d0;background:#fff;color:#42313b}input:focus,select:focus{outline:2px solid #d78caa}button{background:#ad577c;color:white;border:0;font-weight:700;margin-top:16px;cursor:pointer}button.secondary{background:#f7e8ee;color:#884365}button.danger{background:#fff1f3;color:#9b3656;width:auto;margin:0;padding:8px 10px;font-size:12px}.flex{display:flex;gap:10px}.flex>*{flex:1;min-width:0}.line{display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid #f4e8ed;padding:11px 0}.line:last-child{border-bottom:0}.amount{font-weight:750;white-space:nowrap}.bar{height:7px;background:#f7e7ee;border-radius:20px;overflow:hidden;margin-top:7px}.fill{height:100%;background:#ca7c9c;border-radius:20px}.entry{display:flex;gap:9px;align-items:center;justify-content:space-between;border-bottom:1px solid #f4e8ed;padding:12px 0}.entry:last-child{border-bottom:0}.entrytext{flex:1;min-width:0}.entrytext strong{display:block}.entrytext span{display:block;color:#8a7881;font-size:12px;margin-top:4px}.entry .amount{font-size:14px}.empty{text-align:center;color:#8a7881;padding:15px 0}.footer{text-align:center;color:#9b8590;font-size:12px;margin-top:24px}
+</style>
+</head>
+<body><main>
+<h1>heyMoni ♡</h1><p class="sub">Banii iubesc ordinea.</p>
+<section class="card"><label for="month">Luna pe care o urmărești</label><input type="month" id="month"><p class="small">Total cheltuieli în această lună</p><div class="total" id="total">0,00 €</div><span class="small" id="count">0 înregistrări</span></section>
+<section class="card"><h2>Adaugă o cheltuială</h2><form id="expenseForm"><label for="sum">Suma (€)</label><input id="sum" type="text" inputmode="decimal" placeholder="Ex.: 12,50" required><label for="category">Categoria</label><select id="category" required></select><label for="date">Data</label><input id="date" type="date" required><label for="note">Detalii (opțional)</label><input id="note" maxlength="100" placeholder="Ex.: cumpărături la supermarket"><button type="submit">＋ Salvează cheltuiala</button></form></section>
+<section class="card"><h2>Cheltuieli pe categorii</h2><div id="categories"></div></section>
+<section class="card"><h2>Înregistrările mele</h2><div id="entries"></div></section>
+<section class="card"><h2>Copie de siguranță</h2><p class="small">Datele se păstrează doar în acest browser. Exportă periodic o copie: ștergerea datelor browserului sau schimbarea telefonului poate duce la pierderea lor.</p><button type="button" id="export" class="secondary">Descarcă datele (JSON)</button><label for="import">Restabilește o copie JSON</label><input type="file" id="import" accept="application/json,.json"><p class="small">Importul înlocuiește toate datele existente după confirmare.</p></section>
+<p class="footer">HeyMoni • Versiune de test gratuită 💗</p>
+</main>
+<script>
+(()=>{'use strict';
+const KEY='heymoni_expenses_v1';
+const names=['Alimente','Casă și utilități','Transport','Copii / școală / activități','Îngrijire personală','Sănătate','Haine și încălțăminte','Cumpărături pentru casă','Timp liber / vacanțe','Altele'];
+const $=id=>document.getElementById(id);
+const localDate=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
+const euro=cents=>new Intl.NumberFormat('ro-RO',{style:'currency',currency:'EUR'}).format(cents/100);
+const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function load(){try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a.filter(x=>x&&typeof x.id==='string'&&Number.isSafeInteger(x.cents)&&x.cents>0&&names.includes(x.category)&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&typeof x.note==='string'):[]}catch{return []}}
+let expenses=load();
+$('category').innerHTML=names.map(n=>`<option value="${escape(n)}">${escape(n)}</option>`).join('');
+$('date').value=localDate();$('month').value=localDate().slice(0,7);
+function render(){const month=$('month').value;const current=expenses.filter(e=>e.date.slice(0,7)===month).sort((a,b)=>b.date.localeCompare(a.date));const sum=current.reduce((s,e)=>s+e.cents,0);$('total').textContent=euro(sum);$('count').textContent=`${current.length} înregistrări`;
+$('categories').innerHTML=names.map(n=>({name:n,sum:current.filter(e=>e.category===n).reduce((s,e)=>s+e.cents,0)})).filter(x=>x.sum>0).sort((a,b)=>b.sum-a.sum).map(x=>`<div class="line"><div style="flex:1"><div>${escape(x.name)}</div><div class="bar"><div class="fill" style="width:${sum?x.sum/sum*100:0}%"></div></div></div><span class="amount">${euro(x.sum)}</span></div>`).join('')||'<p class="empty">Încă nu ai cheltuieli în această lună.</p>';
+$('entries').innerHTML=current.map(e=>`<div class="entry"><div class="entrytext"><strong>${escape(e.category)}</strong><span>${escape(e.date.split('-').reverse().join('.'))}${e.note?' · '+escape(e.note):''}</span></div><span class="amount">${euro(e.cents)}</span><button type="button" class="danger" data-id="${escape(e.id)}" aria-label="Șterge cheltuiala">Șterge</button></div>`).join('')||'<p class="empty">Lista este goală.</p>'}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(expenses));render();return true}catch{alert('Nu s-au putut salva datele. Verifică spațiul disponibil și setările browserului.');return false}}
+$('expenseForm').addEventListener('submit',e=>{e.preventDefault();const raw=$('sum').value.trim().replace(/\s/g,'').replace(',','.');if(!/^\d+(\.\d{1,2})?$/.test(raw)){alert('Introdu o sumă validă, de exemplu 12,50.');return}const [whole,dec='']=raw.split('.');const cents=Number(whole)*100+Number(dec.padEnd(2,'0'));if(!Number.isSafeInteger(cents)||cents<=0){alert('Suma trebuie să fie mai mare decât zero.');return}const date=$('date').value;if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(new Date(date+'T12:00:00').getTime())){alert('Alege o dată validă.');return}const item={id:Date.now().toString(36)+Math.random().toString(36).slice(2),cents,category:$('category').value,date,note:$('note').value.trim()};if(!names.includes(item.category))return;expenses.push(item);if(save()){$('sum').value='';$('note').value='';$('month').value=date.slice(0,7);render()}});
+$('month').addEventListener('change',render);
+$('entries').addEventListener('click',e=>{const btn=e.target.closest('button[data-id]');if(!btn)return;if(confirm('Ștergi această cheltuială?')){expenses=expenses.filter(x=>x.id!==btn.dataset.id);save()}});
+$('export').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({app:'HeyMoni',version:1,expenses},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='HeyMoni-copie-'+localDate()+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+$('import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>5_000_000)throw Error('Fișier prea mare');const data=JSON.parse(await file.text());if(data.app!=='HeyMoni'||!Array.isArray(data.expenses)||data.expenses.some(x=>!x||typeof x.id!=='string'||!Number.isSafeInteger(x.cents)||x.cents<=0||!names.includes(x.category)||typeof x.note!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(x.date)))throw Error('Format invalid');if(confirm('Înlocuiești toate cheltuielile actuale cu cele din această copie?')){expenses=data.expenses;save()}}catch{alert('Nu am putut importa fișierul. Folosește o copie JSON exportată din HeyMoni.')}finally{e.target.value=''}});
+render();
+})();
+</script></body></html>
